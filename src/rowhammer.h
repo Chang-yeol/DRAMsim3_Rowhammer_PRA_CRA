@@ -18,9 +18,9 @@ class Rowhammer {
         
         std::string convertedTrace();
         virtual bool isInsertionRequired(){return false;}
-        virtual void updateInfo(int row){}
-        void addTrace(int row, uint64_t cycle);
-        std::string getAddrOf(int row);
+        virtual void updateInfo(Address addr){}
+        void addTrace(Address addr, uint64_t cycle);
+        std::string AddressInverseMapping(Address addr);
     protected:
         Config config;
         std::ifstream trace;
@@ -32,7 +32,7 @@ class PRA : public Rowhammer {
         PRA(std::string config_file, std::string output_file, std::string trace_file, float probability);
         ~PRA();
         bool isInsertionRequired() override;
-        void updateInfo(int row) override;
+        void updateInfo(Address addr) override;
     private:
         std::random_device rd;
         std::mt19937_64 gen;
@@ -45,11 +45,12 @@ class CRA : public Rowhammer {
         CRA(std::string config_file, std::string output_file, std::string trace_file, int threshold);
         ~CRA();
         bool isInsertionRequired() override;
-        void updateInfo(int row) override;
+        void updateInfo(Address addr) override;
+        int counterFunc(Address addr);
     private:
         const int thd;
-        int * counter_table;
-        int recent_row;
+        int ***** counter_table; //[channel][rank][bankgroup][bank][row]
+        Address recent_addr;
 };
 
 }
