@@ -1,16 +1,16 @@
 #include <iostream>
 #include "./../ext/headers/args.hxx"
 #include "cpu.h"
+#include "rowhammer.h"
 
 using namespace dramsim3;
 
 int main(int argc, const char **argv) {
     args::ArgumentParser parser(
         "DRAM Simulator.",
-        "Examples: \n."
-        "./build/dramsim3main configs/DDR4_8Gb_x8_3200.ini -c 100 -t "
-        "sample_trace.txt\n"
-        "./build/dramsim3main configs/DDR4_8Gb_x8_3200.ini -s random -c 100");
+        "Examples: \n"
+        "dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 100000000 -t ../sample_trace -r PRA\n"
+        );
     args::HelpFlag help(parser, "help", "Display the help menu", {'h', "help"});
     args::ValueFlag<uint64_t> num_cycles_arg(parser, "num_cycles",
                                              "Number of cycles to simulate",
@@ -25,6 +25,10 @@ int main(int argc, const char **argv) {
         parser, "trace",
         "Trace file, setting this option will ignore -s option",
         {'t', "trace"});
+    args::ValueFlag<std::string> rowhammer_arg(
+        parser, "rowhammer",
+        "Rowhammer protection, option: X (not applied, default), PRA (Probablistic Row Activation), CRA (Counter-based Row Activation)",
+        {'r', "rowhammer"}, "X");
     args::Positional<std::string> config_arg(
         parser, "config", "The config file name (mandatory)");
 
@@ -49,9 +53,27 @@ int main(int argc, const char **argv) {
     std::string output_dir = args::get(output_dir_arg);
     std::string trace_file = args::get(trace_file_arg);
     std::string stream_type = args::get(stream_arg);
+    std::string rowhammer_type = args::get(rowhammer_arg);
 
     CPU *cpu;
     if (!trace_file.empty()) {
+        if (rowhammer_type.compare("PRA") == 0) {
+            // probability = 0.001
+            PRA pra(config_file,output_dir,trace_file, 0.001);
+            trace_file = pra.convertedTrace();
+            delete &pra;
+        }
+        else if (rowhammer_type.compare("CRA") == 0) {
+            CRA cra(config_file,output_dir,trace_file,55555);
+            trace_file = cra.convertedTrace();
+            delete &cra;
+        }
+        else {
+            if (rowhammer_type.compare("X") != 0){
+                std::cout << "Undefined Row Hammering Scheme" << std::endl;
+                return 0;
+            }
+        }
         cpu = new TraceBasedCPU(config_file, output_dir, trace_file);
     } else {
         if (stream_type == "stream" || stream_type == "s") {

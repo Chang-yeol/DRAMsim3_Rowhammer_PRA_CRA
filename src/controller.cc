@@ -45,9 +45,13 @@ Controller::Controller(int channel, const Config &config, const Timing &timing)
 std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
     auto it = return_queue_.begin();
     while (it != return_queue_.end()) {
+        // if transaction "it" is done
         if (clk >= it->complete_cycle) {
             if (it->is_write) {
                 simple_stats_.Increment("num_writes_done");
+            } else if (it->is_NEI_ACT) {
+                simple_stats_.Increment("num_NEI_ACT_cmds");
+                simple_stats_.AddValue("read_latency", clk_ - it->added_cycle);
             } else {
                 simple_stats_.Increment("num_reads_done");
                 simple_stats_.AddValue("read_latency", clk_ - it->added_cycle);
@@ -59,6 +63,7 @@ std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
             ++it;
         }
     }
+    // there is no done transaction
     return std::make_pair(-1, -1);
 }
 

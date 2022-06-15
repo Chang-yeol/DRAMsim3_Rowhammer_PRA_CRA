@@ -19,6 +19,8 @@ void PrintStatText(std::ostream& where, std::string name, T value,
 SimpleStats::SimpleStats(const Config& config, int channel_id)
     : config_(config), channel_id_(channel_id) {
     // counter stats
+    InitStat("num_NEI_ACT_cmds", "counter", "Number of NEI_ACT commands (neighbor activation for preventing row hammering)");
+
     InitStat("num_cycles", "counter", "Number of DRAM cycles");
     InitStat("epoch_num", "counter", "Number of epochs");
     InitStat("num_reads_done", "counter", "Number of read requests issued");
@@ -39,6 +41,8 @@ SimpleStats::SimpleStats(const Config& config, int channel_id)
     InitStat("hbm_dual_cmds", "counter", "Number of cycles dual cmds issued");
 
     // double stats
+    InitStat("NEI_ACT_energy", "double", "Refresh energy");
+
     InitStat("act_energy", "double", "Activation energy");
     InitStat("read_energy", "double", "Read energy");
     InitStat("write_energy", "double", "Write energy");
@@ -365,6 +369,9 @@ void SimpleStats::UpdateEpochStats() {
     UpdateCounters();
 
     // update computed stats
+    doubles_["NEI_ACT_energy"] =
+        epoch_counters_["num_NEI_ACT_cmds"] * config_.ref_energy_inc;
+
     doubles_["act_energy"] =
         epoch_counters_["num_act_cmds"] * config_.act_energy_inc;
     doubles_["read_energy"] =
@@ -402,7 +409,9 @@ void SimpleStats::UpdateEpochStats() {
 
     double total_energy = doubles_["act_energy"] + doubles_["read_energy"] +
                           doubles_["write_energy"] + doubles_["ref_energy"] +
-                          doubles_["refb_energy"] + background_energy;
+                          doubles_["refb_energy"] + doubles_["NEI_ACT_energy"] +
+                          background_energy;
+                          
     calculated_["total_energy"] = total_energy;
     calculated_["average_power"] = total_energy / epoch_counters_["num_cycles"];
     calculated_["average_read_latency"] =
@@ -427,6 +436,8 @@ void SimpleStats::UpdateFinalStats() {
     UpdateCounters();
 
     // update computed stats
+    doubles_["NEI_ACT_energy"] =
+        counters_["num_NEI_ACT_cmds"] * config_.ref_energy_inc;
     doubles_["act_energy"] = counters_["num_act_cmds"] * config_.act_energy_inc;
     doubles_["read_energy"] =
         counters_["num_read_cmds"] * config_.read_energy_inc;
@@ -463,7 +474,8 @@ void SimpleStats::UpdateFinalStats() {
 
     double total_energy = doubles_["act_energy"] + doubles_["read_energy"] +
                           doubles_["write_energy"] + doubles_["ref_energy"] +
-                          doubles_["refb_energy"] + background_energy;
+                          doubles_["refb_energy"] + doubles_["NEI_ACT_energy"] +
+                          background_energy;
     calculated_["total_energy"] = total_energy;
     calculated_["average_power"] = total_energy / counters_["num_cycles"];
     // calculated_["average_read_latency"] = GetHistoAvg("read_latency");

@@ -110,16 +110,25 @@ struct Transaction {
         : addr(addr),
           added_cycle(0),
           complete_cycle(0),
-          is_write(is_write) {}
+          is_write(is_write), 
+          is_NEI_ACT(false) {}
+    Transaction(uint64_t addr, bool is_write, bool is_NEI_ACT)
+        : addr(addr),
+          added_cycle(0),
+          complete_cycle(0),
+          is_write(is_write), 
+          is_NEI_ACT(is_NEI_ACT) {}
     Transaction(const Transaction& tran)
         : addr(tran.addr),
           added_cycle(tran.added_cycle),
           complete_cycle(tran.complete_cycle),
-          is_write(tran.is_write) {}
+          is_write(tran.is_write),
+          is_NEI_ACT(tran.is_NEI_ACT) {}
     uint64_t addr;
     uint64_t added_cycle;
     uint64_t complete_cycle;
     bool is_write;
+    bool is_NEI_ACT;
 
     friend std::ostream& operator<<(std::ostream& os, const Transaction& trans);
     friend std::istream& operator>>(std::istream& is, Transaction& trans);

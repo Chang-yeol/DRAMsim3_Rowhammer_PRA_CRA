@@ -38,6 +38,7 @@ std::istream& operator>>(std::istream& is, Transaction& trans) {
     std::string mem_op;
     is >> std::hex >> trans.addr >> mem_op >> std::dec >> trans.added_cycle;
     trans.is_write = write_types.count(mem_op) == 1;
+    trans.is_NEI_ACT = mem_op.compare("NEI_ACT")==0;
     return is;
 }
 
