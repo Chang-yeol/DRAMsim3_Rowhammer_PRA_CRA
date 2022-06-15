@@ -148,7 +148,7 @@ std::string Rowhammer::AddressInverseMapping(Address addr) {
     field_vals["ch"] = addr.channel;
     field_vals["ra"] = addr.rank;
     field_vals["bg"] = addr.bankgroup;
-    field_vals["ba"] = addr.bankgroup;
+    field_vals["ba"] = addr.bank;
     field_vals["ro"] = addr.row;
     field_vals["co"] = addr.column; // any value (within valid range) is possible
 
