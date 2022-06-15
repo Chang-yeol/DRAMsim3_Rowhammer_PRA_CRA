@@ -135,7 +135,7 @@ int CRA::counterFunc(Address addr){
 }
 
 std::string Rowhammer::AddressInverseMapping(Address addr) {
-    uint64_t hex_addr;
+    uint64_t hex_addr=0;
 
     std::map<std::string, int> field_widths, field_vals;
     field_widths["ch"] = LogBase2(config.channels);
@@ -161,11 +161,11 @@ std::string Rowhammer::AddressInverseMapping(Address addr) {
     while (!fields.empty()) {
         auto token = fields.front();
         fields.pop();
-        // push width amount of address 
+        // push "width" amount of address 
         // and make room for the value
         // corresponding to the token
         hex_addr <<= field_widths[token];
-        //write value corresponding to the token
+        // write value corresponding to the token
         hex_addr |= field_vals[token];
     }
     hex_addr <<= config.shift_bits;
