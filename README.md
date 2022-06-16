@@ -89,9 +89,9 @@ Check ```output/dramsim3.txt``` and others inside the folder ```build```.
 
 - - - -
 
-> The following is the original description (README.md) from [DRAMsim3](https://github.com/umd-memsys/DRAMsim3) repository.
-> Not every description can be directly applied but most of them can. Watch out for the incompatability (such as setting directories).
-> I leave it for convenience.
+> The following is the original description (README.md) from [DRAMsim3](https://github.com/umd-memsys/DRAMsim3) repository. <br/>
+> Not every description can be directly applied but most of them can. Watch out for the incompatability (such as setting directories). <br/>
+> I leave it for the convenience.
 
 # About DRAMsim3
 
