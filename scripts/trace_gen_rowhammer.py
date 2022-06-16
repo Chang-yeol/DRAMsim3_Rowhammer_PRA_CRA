@@ -182,7 +182,8 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--interarrival',
                         type=int,
                         help='Inter-arrival time in cycles. \
-                              The default value is "row cycle time"+ 2 = tRC + 2 (=tRAS+tRP+2) in order to avoid row buffer hits.',
+                              The default value is "row cycle time"+ 2 = tRC + 2 (=tRAS+tRP+2) in order to avoid row buffer hits. \
+                              Ignore default message -->',
                         default=0)
     # parser.add_argument('-r', '--ratio',
     #                     type=float,
