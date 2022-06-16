@@ -76,6 +76,11 @@ def main(args):
     config = configparser.ConfigParser()
     config.read(args.config_file)
 
+    inter_arrival=args.interarrival
+    if inter_arrival==0:
+        inter_arrival = int(config['timing']['tRAS'])+int(config['timing']['tRP'])+2
+    print(f'Config: {args.config_file} Output-dir: {args.output_dir} #requests: {args.num_reqs} inter-arrival time: {inter_arrival}')
+
     field_range = dict()
     field_range["ch"]=int(config['system']['channels'])
     #field_range["ra"] is defined later
@@ -128,7 +133,7 @@ def main(args):
         else :
             file.write(f'{avoid_row_hit_addr} {op} {clk}\n')
             coin_toss=True
-        clk += args.interarrival
+        clk += inter_arrival
 
                 
     file.close()
@@ -177,8 +182,8 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--interarrival',
                         type=int,
                         help='Inter-arrival time in cycles. \
-                              The default value is 10',
-                        default=10)
+                              The default value is "row cycle time"+ 2 = tRC + 2 (=tRAS+tRP+2) in order to avoid row buffer hits.',
+                        default=0)
     # parser.add_argument('-r', '--ratio',
     #                     type=float,
     #                     help='Read to write(1) ratio. \
@@ -197,9 +202,5 @@ if __name__ == '__main__':
     check_value_validity(args.num_reqs, "number of requests")
     check_value_validity(args.interarrival, "inter-arrival time")
     # check_value_validity(args.ratio, "read-write ratio")
-
-    print(f'Config: {args.config_file} Output-dir: {args.output_dir} #requests: {args.num_reqs} inter-arrival time: {args.interarrival}')
-
     
-
     main(args)
