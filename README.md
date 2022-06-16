@@ -1,5 +1,80 @@
 [![Build Status](https://travis-ci.com/umd-memsys/DRAMsim3.svg?branch=master)](https://travis-ci.com/umd-memsys/DRAMsim3)
 
+# About DRAMsim3_Rowhammer_PRA_CRA
+
+On top of [DRAMsim3](https://github.com/umd-memsys/DRAMsim3) model, we implemented the PRA (probablistic row activation) and CRA (counter-based row activation) scheme for the protection from row hammering based on the following.
+
+*Dae-Hyun Kim, Prashant J. Nair, and Moinuddin K. Qureshi. 2015. Architectural Support for Mitigating Row Hammering in DRAM Memories. IEEE Comput. Archit. Lett. 14, 1 (Jan.-June 2015), 9–12.* [Link](https://doi.org/10.1109/LCA.2014.2332177)
+
+It is worth noting that it is **_not_** the actual realization of PRA and CRA. For PRA, we need additional coin tossing module with (pre)defined probability. For CRA, wee need additional dram space for row-activation-counter and caching mechanism for accelerating the counting proceduer. These systems are not fully implemented in the configuration of a memory system. <br/>
+Therefore, in terms of energy consumption, the result of the simulator does not reflect the required energy for these systems. However, in terms of timing, by assuming the timing (related to these systems) can be hidden behind the trace handling procedure (e.g., by assuming coin tossing can be done in 1 cycle and assuming counting procedure can be done parallely), I concluded that it is not critical. Please consider this when interpreting the results.
+
+For more information on DRAMsim3 itself, please refer to the section [About DRAMsim3](#about-dramsim3) below.
+
+## Generating row hammering trace
+
+```scripts/trace_gen_rowhammer.py``` produces a trace file consists of only ```READ``` operation but has row hammering attack. According to the input configuration file (inside the folder ```configs```), it first decides a victim row, and declare one aggressor row and one row for avoiding row hits. (Note that the latter row is also an aggressor in dram's view.)
+
+You can run the code by the following (requires `numpy`):
+
+```bash
+# help
+python scripts/trace_gen_rowhammer.py -h
+
+# running example
+python scripts/trace_gen_rowhammer.py configs/DDR3_8Gb_x16_1866.ini
+```
+
+The name of the output file is ```trace_[CONFIG]``` (without extension), e.g., ```trace_DDR3_8Gb_x16_1866```. <br/>
+The output can be directed to another directory by `-o` option. The default is set to the current directory. (Please check the other option using `-h` flag.)
+
+## Building & running the simulator
+
+This section is essensially equivalent to the corresponding original explanation, but for the sake of completeness (whatever it means), it is restated.
+
+### Building the simulator
+
+CMake 3.0+ is required to build the simulator.
+It is recommended to make another directory for the build files.
+
+```bash
+# cmake out of source build
+mkdir build
+cd build
+# assume using MinGW compiler
+cmake .. -G "MinGW Makefiles"
+
+# Build dramsim3 library and executables
+make -j4
+```
+
+The build process creates `dramsim3main` and executables in the (current) `build` directory.
+
+### Running the simulater
+
+When rowhammer protection scheme is applied (by setting `-r` flag), ```src/rowhammer.cc``` generates a new trace file (on the same directory with the input trace file) with protection applied, e.g., ```trace_DDR3_8Gb_x16_1866_CRA_applied``` (without extension). The new trace file has additional traces with operation code ```NEI_ACT```, which stands for Neighbor Activation.
+
+This new operation is treated same as ```refresh``` in terms of energy consumption. After the new trace is generated, the simulator simulates it for the input cycles. While simulating, it calculates how many number of ```NEI_ACT``` operation is handled and how much enery did it consume. The result of the simulation can be checked in the files in the output directory (which can be defined by setting `-o` flag).
+
+The description assumes that we are still in the `build` directory. <br/>
+It is recommended to create `output` folder inside the `build` directory before running the simulator.
+
+```bash
+# help
+dramsim3main -h
+
+# Running a trace file with PRA scheme
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 100000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r PRA
+# PRA with different probability (default 0.001)
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 100000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r PRA -p 0.0005
+
+# Running a trace file with CRA scheme
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 100000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r CRA
+# CRA with different counter threshold (default 55555)
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 100000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r CRA --thd 56789
+
+```
+
 # About DRAMsim3
 
 DRAMsim3 models the timing paramaters and memory controller behavior for several DRAM protocols such as DDR3, DDR4, LPDDR3, LPDDR4, GDDR5, GDDR6, HBM, HMC, STT-MRAM. It is implemented in C++ as an objected oriented model that includes a parameterized DRAM bank model, DRAM controllers, command queues and system-level interfaces to interact with a CPU simulator (GEM5, ZSim) or trace workloads. It is designed to be accurate, portable and parallel.
