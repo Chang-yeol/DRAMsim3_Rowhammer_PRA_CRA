@@ -201,7 +201,7 @@ if __name__ == '__main__':
     check_dir_exists(args.output_dir, "output folder")
 
     check_value_validity(args.num_reqs, "number of requests")
-    check_value_validity(args.interarrival, "inter-arrival time")
+    # check_value_validity(args.interarrival, "inter-arrival time")
     # check_value_validity(args.ratio, "read-write ratio")
     
     main(args)
