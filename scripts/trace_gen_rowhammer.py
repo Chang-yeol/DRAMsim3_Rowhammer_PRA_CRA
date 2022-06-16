@@ -103,7 +103,7 @@ def main(args):
     avoid_row_hit = copy.deepcopy(victim)
     while (True):
         avoid_row_hit["ro"]=np.random.randint(field_range["ro"])
-        if avoid_row_hit["ro"]!=victim["ro"]:
+        if avoid_row_hit["ro"]!=victim["ro"] and avoid_row_hit["ro"]!=aggressor["ro"]:
             break
     
     victim_addr = AddressInverseMapping(config, field_range, victim)
