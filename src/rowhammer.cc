@@ -2,6 +2,14 @@
 #include <queue>
 namespace dramsim3{
 
+void print_addr(Address addr) {
+    std::cout << "channel: " << addr.channel << " "
+              << "rank: " << addr.rank << " "
+              << "bankgroup: " << addr.bankgroup << " "
+              << "bank: " << addr.bank << " "
+              << "row: " << addr.row << std::endl;
+}
+
 Rowhammer::Rowhammer(std::string config_file, std::string output_file, std::string trace_file, std::string method)
     : config(config_file, output_file),
       trace(trace_file),
@@ -15,11 +23,15 @@ Rowhammer::~Rowhammer() {
     new_trace.close();
 }
 
-std::string Rowhammer::convertedTrace() {
-    std::cout << "generating new trace file...\n";
+std::string Rowhammer::convertedTrace(bool is_cra) {
+    std::cout << "generating new trace file ";
     std::string str_addr, trans_type; 
     uint64_t cycle;
+    int util_progress = 1;
+    bool util_print_flag = true;
+    std::vector<string> util_aggressor;
     while (trace >> str_addr >> trans_type >> cycle) {
+        if (util_print_flag && util_progress++ % 1000000 == 0) std::cout<<"-"<<std::flush;
         new_trace << str_addr << " " << trans_type << " " << cycle << std::endl;
         
         uint64_t hex_addr;
@@ -30,10 +42,22 @@ std::string Rowhammer::convertedTrace() {
 
         updateInfo(addr); // only for CRA
         if (isInsertionRequired()){
+            if (util_print_flag) {
+                std::cout<<"\n";
+                util_print_flag = false;
+            }
+            if (is_cra && std::find(util_aggressor.begin(), 
+                          util_aggressor.end(), 
+                          str_addr) 
+                        == util_aggressor.end()) {
+                util_aggressor.push_back(str_addr);
+                std::cout<< "Aggressor detected - "<<str_addr <<" "; print_addr(addr);
+                // std::cout<< "Add activation trace for neighbor rows" << std::endl;
+            }
             addTrace(addr, cycle);
         }
     }
-    std::cout << "DONE" << std::endl;
+    if (util_print_flag) std::cout << " done" << std::endl;
     return new_trace_file;
 }
 

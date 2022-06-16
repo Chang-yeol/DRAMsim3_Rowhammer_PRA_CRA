@@ -16,7 +16,7 @@ class Rowhammer {
 
         std::string new_trace_file;
         
-        std::string convertedTrace();
+        std::string convertedTrace(bool cra);
         virtual bool isInsertionRequired(){return false;}
         virtual void updateInfo(Address addr){}
         void addTrace(Address addr, uint64_t cycle);
