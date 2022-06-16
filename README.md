@@ -4,7 +4,7 @@
 
 On top of [DRAMsim3](https://github.com/umd-memsys/DRAMsim3) model, we implemented the PRA (probablistic row activation) and CRA (counter-based row activation) scheme for the protection from row hammering based on the following.
 
-*Dae-Hyun Kim, Prashant J. Nair, and Moinuddin K. Qureshi. 2015. Architectural Support for Mitigating Row Hammering in DRAM Memories. IEEE Comput. Archit. Lett. 14, 1 (Jan.-June 2015), 9–12.* [Link](https://doi.org/10.1109/LCA.2014.2332177)
+* *Dae-Hyun Kim, Prashant J. Nair, and Moinuddin K. Qureshi. 2015. Architectural Support for Mitigating Row Hammering in DRAM Memories. IEEE Comput. Archit. Lett. 14, 1 (Jan.-June 2015), 9–12.* [Link](https://doi.org/10.1109/LCA.2014.2332177)
 
 It is worth noting that it is **_not_** the actual realization of PRA and CRA. For PRA, we need additional coin tossing module with (pre)defined probability. For CRA, wee need additional dram space for row-activation-counter and caching mechanism for accelerating the counting proceduer. These systems are not fully implemented in the configuration of a memory system. <br/>
 Therefore, in terms of energy consumption, the result of the simulator does not reflect the required energy for these systems. However, in terms of timing, by assuming the timing (related to these systems) can be hidden behind the trace handling procedure (e.g., by assuming coin tossing can be done in 1 cycle and assuming counting procedure can be done parallely), I concluded that it is not critical. Please consider this when interpreting the results.
@@ -13,7 +13,17 @@ For more information on DRAMsim3 itself, please refer to the section [About DRAM
 
 ## Generating row hammering trace
 
-```scripts/trace_gen_rowhammer.py``` produces a trace file consists of only ```READ``` operation but has row hammering attack. According to the input configuration file (inside the folder ```configs```), it first decides a victim row, and declare one aggressor row and one row for avoiding row hits. (Note that the latter row is also an aggressor in dram's view.)
+```scripts/trace_gen_rowhammer.py``` produces a trace file consists of only ```READ``` operation but has row hammering attack. According to the input configuration file (inside the folder ```configs```), it first decides _one_ victim row, and declare one aggressor row and one row for avoiding row hits. (Note that the latter row is also an aggressor in dram's view.) There are few issues related to the implementation.
+
+1. In real world, being logically adjacent does not always imply physically adjacent, i.e., the rows are placed next to each other on the silicon die, but here, I assumed that it _does_ imply physical adjacentness. 
+
+2. The inter-arrival time in cycles are set to _tRC_+2. The scheduling policy in DRAMsim3 is FR-FCFS, thus if there are commands that can hit the row buffer cache, it is scheduled first. Activation interval should be set above _tRC_, i.e., row cycle time, otherwise, it would cause row buffer hit. The additive term +2 is for avoiding unintentional row buffer hit caused by refresh procedure. In the simulator, pending refresh command is served first if exists, which puts other commands pending state. This can cause row buffer hits, so we avoid it by adding the additive term to the _tRC_.
+
+3. Not only adjacent neighbor rows, but also neighbor rows of adjacent neighbor rows can be victimized by the aggressor and so on. Here, however, I assumed only directly adjacent neighbor rows are affected.
+
+Check the following paper for more details related to above issues (and also for other interesting topics).
+
+* *Yoongu Kim, Ross Daly, Jeremie Kim, Chris Fallin, Ji Hye Lee, Donghyuk Lee, Chris Wilkerson, Konrad Lai, and Onur Mutlu. 2014. Flipping bits in memory without accessing them: an experimental study of DRAM disturbance errors. SIGARCH Comput. Archit. News 42, 3 (June 2014), 361–372.* [Link](https://doi.org/10.1145/2678373.2665726)
 
 You can run the code by the following (requires `numpy`):
 
@@ -26,7 +36,7 @@ python scripts/trace_gen_rowhammer.py configs/DDR3_8Gb_x16_1866.ini
 ```
 
 The name of the output file is ```trace_[CONFIG]``` (without extension), e.g., ```trace_DDR3_8Gb_x16_1866```. <br/>
-The output can be directed to another directory by `-o` option. The default is set to the current directory. (Please check the other option using `-h` flag.)
+The output can be directed to another directory by `-o` option. The default is set to the current directory. (Please check the other options using `-h` flag.)
 
 ## Building & running the simulator
 
@@ -41,7 +51,7 @@ It is recommended to make another directory for the build files.
 # cmake out of source build
 mkdir build
 cd build
-# assume using MinGW compiler
+# assuming using MinGW compiler
 cmake .. -G "MinGW Makefiles"
 
 # Build dramsim3 library and executables
@@ -54,7 +64,7 @@ The build process creates `dramsim3main` and executables in the (current) `build
 
 When rowhammer protection scheme is applied (by setting `-r` flag), ```src/rowhammer.cc``` generates a new trace file (on the same directory with the input trace file) with protection applied, e.g., ```trace_DDR3_8Gb_x16_1866_CRA_applied``` (without extension). The new trace file has additional traces with operation code ```NEI_ACT```, which stands for Neighbor Activation.
 
-This new operation is treated same as ```refresh``` in terms of energy consumption. After the new trace is generated, the simulator simulates it for the input cycles. While simulating, it calculates how many number of ```NEI_ACT``` operation is handled and how much enery did it consume. The result of the simulation can be checked in the files in the output directory (which can be defined by setting `-o` flag).
+This new operation is treated same as ```read``` in terms of latency and ```refresh``` in terms of energy consumption. After the new trace is generated, the simulator simulates it for the input cycles. While simulating, it calculates how many number of ```NEI_ACT``` operation is handled and how much enery did it consume. The result of the simulation can be checked in the files in the output directory (which can be defined by setting `-o` flag).
 
 The description assumes that we are still in the `build` directory. <br/>
 It is recommended to create `output` folder inside the `build` directory before running the simulator.
@@ -64,16 +74,24 @@ It is recommended to create `output` folder inside the `build` directory before 
 dramsim3main -h
 
 # Running a trace file with PRA scheme
-dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 100000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r PRA
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 1000000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r PRA
 # PRA with different probability (default 0.001)
-dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 100000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r PRA -p 0.0005
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 1000000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r PRA -p 0.0005
 
 # Running a trace file with CRA scheme
-dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 100000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r CRA
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 1000000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r CRA
 # CRA with different counter threshold (default 55555)
-dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 100000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r CRA --thd 56789
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 1000000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r CRA --thd 56789
 
 ```
+
+Check ```output/dramsim3.txt``` and others inside the folder ```build```.
+
+- - - -
+
+> The following is the original description (README.md) from [DRAMsim3](https://github.com/umd-memsys/DRAMsim3) repository.
+> Not every description can be directly applied but most of them can. Watch out for the incompatability.
+> I leave it for convenience.
 
 # About DRAMsim3
 
