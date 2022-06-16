@@ -91,8 +91,9 @@ int main(int argc, const char **argv) {
         }
     }
     std::cout << "simulating trace file ";
+    const uint64_t denominator = cycles / 10;
     for (uint64_t clk = 0; clk < cycles; clk++) {
-        if (clk % 10000000==0) std::cout<< "-"<<std::flush;
+        if (clk % denominator==0) std::cout<< "-"<<std::flush;
         cpu->ClockTick();
 
     }
