@@ -29,6 +29,12 @@ int main(int argc, const char **argv) {
         parser, "rowhammer",
         "Rowhammer protection, option: X (not applied, default), PRA (Probablistic Row Activation), CRA (Counter-based Row Activation)",
         {'r', "rowhammer"}, "X");
+    args::ValueFlag<float> probability(
+        parser, "probability for PRA (default: 0.001, max=1)", "this option will be ignore on -r CRA",
+        {'p', "probability"}, 0.001);
+    args::ValueFlag<int> threshold(
+        parser, "threshold for CRA (default: 55555)", "this option will be ignore on -r PRA",
+        {"thd"}, 55555);
     args::Positional<std::string> config_arg(
         parser, "config", "The config file name (mandatory)");
 
@@ -60,14 +66,14 @@ int main(int argc, const char **argv) {
         bool is_cra = true;
         if (rowhammer_type.compare("PRA") == 0) {
             // probability = 0.001
-            PRA pra(config_file,output_dir,trace_file, 0.001);
+            PRA pra(config_file,output_dir,trace_file, args::get(probability));
             is_cra = false;
             trace_file = pra.convertedTrace(is_cra);
         }
         else if (rowhammer_type.compare("CRA") == 0) {
             // threshold = 55555
             // bit flip occur when consecutive 55555 attacks
-            CRA cra(config_file,output_dir,trace_file,55555);
+            CRA cra(config_file,output_dir,trace_file, args::get(threshold));
             trace_file = cra.convertedTrace(is_cra);
         }
         else {
