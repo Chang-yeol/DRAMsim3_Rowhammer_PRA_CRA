@@ -78,7 +78,7 @@ def main(args):
 
     inter_arrival=args.interarrival
     if inter_arrival==0:
-        inter_arrival = int(config['timing']['tRAS'])+int(config['timing']['tRP'])+2
+        inter_arrival = int(config['timing']['tRAS'])+int(config['timing']['tRP'])
     print(f'Config: {args.config_file} Output-dir: {args.output_dir} #requests: {args.num_reqs} inter-arrival time: {inter_arrival}')
 
     field_range = dict()
@@ -117,6 +117,17 @@ def main(args):
     print("Victim: \t", util_format(victim), "\thex addr: ", victim_addr) 
     print("Aggressor: \t", util_format(aggressor), "\thex addr: ", aggressor_addr)
     print("Avoid_row_hit: \t", util_format(avoid_row_hit), "\thex addr: ",avoid_row_hit_addr)
+
+    # compute refresh interval
+    refresh_policy_ = config['system']['refresh_policy']
+    # default refresh scheme: RANK STAGGERED
+    tREFI = int(config["timing"]["tREFI"])
+    refresh_interval_ = tREFI / field_range["ra"]
+    if (refresh_policy_ == "RANK_LEVEL_SIMULTANEOUS") :
+        refresh_interval_ = tREFI
+    elif (refresh_policy_ == "BANK_LEVEL_STAGGERED") :
+        refresh_interval_ = config["timing"]["tREFIb"]
+    
     
     config_name = args.config_file.split('.')[0].split('/')[-1]
     file_name = f'trace_{config_name}'
@@ -125,6 +136,7 @@ def main(args):
 
     coin_toss = True
     clk = 0
+    refresh_counter = 1
     op="READ"
     for i in range(args.num_reqs):
         if coin_toss:
@@ -134,7 +146,9 @@ def main(args):
             file.write(f'{avoid_row_hit_addr} {op} {clk}\n')
             coin_toss=True
         clk += inter_arrival
-
+        if (clk >= refresh_interval_*refresh_counter):
+            refresh_counter += 1
+            clk += int(config['timing']['tRP'])
                 
     file.close()
 
