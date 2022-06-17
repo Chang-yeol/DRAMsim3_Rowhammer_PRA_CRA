@@ -9,7 +9,7 @@ int main(int argc, const char **argv) {
     args::ArgumentParser parser(
         "DRAM Simulator.",
         "Examples: \n"
-        "dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 100000000 -t ../sample_trace -r CRA\n"
+        "dramsim3main ../configs/DDR4_4Gb_x8_2400.ini -c 100000000 -t ../trace_DDR4_4Gb_x8_2400 -r CRA\n"
         );
     args::HelpFlag help(parser, "help", "Display the help menu", {'h', "help"});
     args::ValueFlag<uint64_t> num_cycles_arg(parser, "num_cycles",
@@ -100,7 +100,7 @@ int main(int argc, const char **argv) {
     std::cout << " done" << std::endl;
     cpu->PrintStats();
 
-    std::cout<<"check the output files in directory ./" << output_dir << std::endl;
+    std::cout<<"check the output files in directory " << output_dir << std::endl;
     delete cpu;
 
     return 0;
