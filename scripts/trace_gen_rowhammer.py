@@ -76,11 +76,12 @@ def main(args):
     config = configparser.ConfigParser()
     config.read(args.config_file)
 
-    inter_arrival=args.interarrival
-    if inter_arrival==0:
-        inter_arrival = int(config['timing']['tRAS'])+int(config['timing']['tRP'])
-    print(f'Config: {args.config_file} Output-dir: {args.output_dir} #requests: {args.num_reqs} inter-arrival time: {inter_arrival}')
-
+    # timing
+    tRP = int(config['timing']['tRP'])
+    tRAS = int(config['timing']['tRAS'])
+    
+    
+    # address
     field_range = dict()
     field_range["ch"]=int(config['system']['channels'])
     #field_range["ra"] is defined later
@@ -91,6 +92,25 @@ def main(args):
     field_range["co"]=int(int(config['dram_structure']['columns']) / BL)
     
     field_range["ra"] = calculate_ranks(config, field_range)
+
+
+    # compute refresh interval (default refresh scheme: RANK STAGGERED)
+    refresh_policy_ = config['system']['refresh_policy']
+    tREFI = int(config["timing"]["tREFI"])
+    refresh_interval_ = tREFI / field_range["ra"]
+    if (refresh_policy_ == "RANK_LEVEL_SIMULTANEOUS") :
+        refresh_interval_ = tREFI
+    elif (refresh_policy_ == "BANK_LEVEL_STAGGERED") :
+        refresh_interval_ = config["timing"]["tREFIb"]
+
+    inter_arrival=args.interarrival # tRC
+    if inter_arrival==0:
+        inter_arrival = tRAS+tRP
+    num_reqs = args.num_reqs
+    if num_reqs==0:
+        num_reqs = int(refresh_interval_ / inter_arrival)
+    print(f'Config: {args.config_file} Output-dir: {args.output_dir} #requests: {num_reqs} inter-arrival time: {inter_arrival}')
+
 
     # generate victim row
     victim = dict()
@@ -117,16 +137,6 @@ def main(args):
     print("Victim: \t", util_format(victim), "\thex addr: ", victim_addr) 
     print("Aggressor: \t", util_format(aggressor), "\thex addr: ", aggressor_addr)
     print("Avoid_row_hit: \t", util_format(avoid_row_hit), "\thex addr: ",avoid_row_hit_addr)
-
-    # compute refresh interval
-    refresh_policy_ = config['system']['refresh_policy']
-    # default refresh scheme: RANK STAGGERED
-    tREFI = int(config["timing"]["tREFI"])
-    refresh_interval_ = tREFI / field_range["ra"]
-    if (refresh_policy_ == "RANK_LEVEL_SIMULTANEOUS") :
-        refresh_interval_ = tREFI
-    elif (refresh_policy_ == "BANK_LEVEL_STAGGERED") :
-        refresh_interval_ = config["timing"]["tREFIb"]
     
     
     config_name = args.config_file.split('.')[0].split('/')[-1]
@@ -136,26 +146,22 @@ def main(args):
 
     coin_toss = True
     clk = 0
-    refresh_counter = 1
+    # refresh_counter = 1
     op="READ"
-    for i in range(args.num_reqs):
+
+    for i in range(num_reqs):
         if coin_toss:
             file.write(f'{aggressor_addr} {op} {clk}\n')
             coin_toss = False
         else :
             file.write(f'{avoid_row_hit_addr} {op} {clk}\n')
             coin_toss=True
-        clk += inter_arrival
-        if (clk >= refresh_interval_*refresh_counter):
-            refresh_counter += 1
-            clk += int(config['timing']['tRP'])
+        clk += inter_arrival #tRC=tRAS+tRP
+        # if (clk >= refresh_interval_*refresh_counter):
+        #     refresh_counter += 1
+        #     clk += 1+inter_arrival #2*tRP+tRCD
                 
     file.close()
-
-    #print(victim)
-    
-    
-
 
 def check_dir_exists(dir, option):
     if not os.path.exists(dir):
@@ -191,12 +197,13 @@ if __name__ == '__main__':
     parser.add_argument('-n','--num-reqs',
                         type=int,
                         help="Total number of requests. \
-                              The default value is 10^7.",
-                        default=10**7)
+                              The default value is (refresh interval) / tRC . \
+                              Ignore default message -->",
+                        default=0)
     parser.add_argument('-i', '--interarrival',
                         type=int,
                         help='Inter-arrival time in cycles. \
-                              The default value is "row cycle time"+ 2 = tRC + 2 (=tRAS+tRP+2) in order to avoid row buffer hits. \
+                              The default value is row cycle time (tRC) in order to avoid row buffer hits. \
                               Ignore default message -->',
                         default=0)
     # parser.add_argument('-r', '--ratio',
@@ -214,7 +221,7 @@ if __name__ == '__main__':
     check_dir_exists(args.config_file, "config file")
     check_dir_exists(args.output_dir, "output folder")
 
-    check_value_validity(args.num_reqs, "number of requests")
+    # check_value_validity(args.num_reqs, "number of requests")
     # check_value_validity(args.interarrival, "inter-arrival time")
     # check_value_validity(args.ratio, "read-write ratio")
     

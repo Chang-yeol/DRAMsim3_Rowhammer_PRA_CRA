@@ -9,12 +9,12 @@ int main(int argc, const char **argv) {
     args::ArgumentParser parser(
         "DRAM Simulator.",
         "Examples: \n"
-        "dramsim3main ../configs/DDR4_4Gb_x8_2400.ini -c 100000000 -t ../trace_DDR4_4Gb_x8_2400 -r CRA\n"
+        "dramsim3main ../configs/DDR4_4Gb_x8_2400.ini -c 100000 -t ../trace_DDR4_4Gb_x8_2400 -r CRA\n"
         );
     args::HelpFlag help(parser, "help", "Display the help menu", {'h', "help"});
     args::ValueFlag<uint64_t> num_cycles_arg(parser, "num_cycles",
                                              "Number of cycles to simulate",
-                                             {'c', "cycles"}, 100000000);
+                                             {'c', "cycles"}, 100000);
     args::ValueFlag<std::string> output_dir_arg(
         parser, "output_dir", "Output directory for stats files",
         {'o', "output-dir"}, ".");
@@ -31,10 +31,10 @@ int main(int argc, const char **argv) {
         {'r', "rowhammer"}, "X");
     args::ValueFlag<float> probability(
         parser, "probability for PRA (default: 0.001, max=1)", "this option will be ignore on -r CRA",
-        {'p', "probability"}, 0.001);
+        {'p', "probability"}, 0.01);
     args::ValueFlag<int> threshold(
-        parser, "threshold for CRA (default: 55555)", "this option will be ignore on -r PRA",
-        {"thd"}, 55555);
+        parser, "threshold for CRA (default: 25)", "this option will be ignore on -r PRA",
+        {"thd"}, 25);
     args::Positional<std::string> config_arg(
         parser, "config", "The config file name (mandatory)");
 
