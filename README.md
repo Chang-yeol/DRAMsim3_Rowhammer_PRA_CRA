@@ -17,9 +17,11 @@ For more information on DRAMsim3 itself, please refer to the section [About DRAM
 
 1. In real world, being logically adjacent does not always imply physically adjacent, i.e., the rows are placed next to each other on the silicon die, but here, I assumed that it _does_ imply physical adjacentness. 
 
-2. The inter-arrival time in cycles are set to _tRC_+2. The scheduling policy in DRAMsim3 is FR-FCFS, thus if there are commands that can hit the row buffer cache, it is scheduled first. Activation interval should be set above _tRC_, i.e., row cycle time, otherwise, it would cause row buffer hit. The additive term +2 is for avoiding unintentional row buffer hit caused by refresh procedure. In the simulator, pending refresh command is served first if exists, which puts other commands pending state. This can cause row buffer hits, so we avoid it by adding the additive term to the _tRC_. (
+2. The inter-arrival time in cycles are set to _tRC_ by default. The scheduling policy in DRAMsim3 is FR-FCFS, thus if there are commands that can hit the row buffer cache, it is scheduled first. Activation interval should be set above _tRC_, i.e., row cycle time, otherwise, it would cause row buffer hit.
 
-3. Not only adjacent neighbor rows, but also neighbor rows of adjacent neighbor rows can be victimized by the aggressor and so on. Here, however, I assumed only directly adjacent neighbor rows are affected.
+3. The number of request is set to refresh_interval / tRC by default. Note that bit flip happens by row hammering between two consecutive refreshes.
+
+4. Not only adjacent neighbor rows, but also neighbor rows of adjacent neighbor rows can be victimized by the aggressor and so on. Here, however, I assumed only directly adjacent neighbor rows are affected.
 
 Check the following paper for more details related to above issues (and also for other interesting topics).
 
@@ -74,18 +76,18 @@ It is recommended to create `output` folder inside the `build` directory before 
 dramsim3main -h
 
 # Running a trace file with PRA scheme
-dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 1000000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r PRA
-# PRA with different probability (default 0.001)
-dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 1000000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r PRA -p 0.0005
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -t ../trace_DDR3_8Gb_x16_1866 -o output -r PRA
+# PRA with different probability (default 0.01)
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -t ../trace_DDR3_8Gb_x16_1866 -o output -r PRA -p 0.001
 
 # Running a trace file with CRA scheme
-dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 1000000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r CRA
-# CRA with different counter threshold (default 55555)
-dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -c 1000000000 -t ../trace_DDR3_8Gb_x16_1866 -o output -r CRA --thd 56789
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -t ../trace_DDR3_8Gb_x16_1866 -o output -r CRA
+# CRA with different counter threshold (default 25)
+dramsim3main ../configs/DDR3_8Gb_x16_1866.ini -t ../trace_DDR3_8Gb_x16_1866 -o output -r CRA --thd 100
 
 ```
 
-Check ```output/dramsim3.txt``` and others inside the folder ```build```.
+Check ```output/dramsim3.txt``` and others inside the folder ```build```. (Please check the other options using `-h` flag.)
 
 - - - -
 
